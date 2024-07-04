@@ -1,7 +1,5 @@
 # 33 - 窗口系统集成（WSI）
 
-## ......
-
 ## WSI 交换链
 
 交换链对象（又称交换链）可将渲染结果呈现在表面（surface）上。
@@ -36,6 +34,8 @@
 > [!note]
 > VK_KHR_shared_presentable_image 扩展不提供用于确定呈现引擎刷新周期时间的功能。
 
+<details>
+<summary>交换链API</summary>
 要查询交换链在渲染为共享可呈现图像时的状态，请调用
 
 ```cpp
@@ -182,3 +182,5 @@ typedef enum VkSwapchainCreateFlagBitsKHR {
     VK_SWAPCHAIN_CREATE_DEFERRED_MEMORY_ALLOCATION_BIT_EXT = 0x00000008,
 } VkSwapchainCreateFlagBitsKHR;
 ```
+
+</details>
