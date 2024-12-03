@@ -1,10 +1,101 @@
 # 33 - 窗口系统集成（WSI）
 
+本章讨论 Vulkan API 与向用户显示渲染结果的各种形式之间的窗口系统集成（WSI）。 由于 Vulkan API 可以在不显示结果的情况下使用，因此 WSI 是通过使用可选的 Vulkan 扩展来提供的。
+本章将概述 WSI。 有关每个 WSI 扩展的其他详细信息，包括必须启用哪些扩展才能使用本章介绍的每个功能，请参见附录。
+
+## WSI 平台
+
+平台是窗口系统、操作系统等的抽象概念。 例如 MS Windows、Android 和 Wayland。 Vulkan API 可以针对每个平台以独特的方式进行集成。
+
+Vulkan API 没有定义任何类型的平台对象。 定义了特定平台的 WSI 扩展，每个扩展都包含使用 WSI 的特定平台功能。 这些扩展的使用受到预处理器符号的保护，如 "窗口系统专用头控制 "附录中所定义。
+
+要在特定平台上编译应用程序以使用 WSI，应用程序必须
+
+- 在包含 vulkan.h 头文件之前定义适当的预处理器符号
+- 包含 vulkan_core.h 和任何原生平台头文件
+- 然后是适当的平台特定头文件
+
+窗口系统扩展和头文件表中定义了预处理器符号和特定平台头文件。
+
+每个特定平台扩展都是一个实例扩展。 在使用实例扩展之前，应用程序必须使用 vkCreateInstance 启用它们。
+
+## WSI Surface
+
+本地平台的 Surface 或窗口对象由曲面对象抽象出来，而 Surface 对象则由 VkSurfaceKHR 句柄表示：
+
+```cpp
+// Provided by VK_KHR_surface
+VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkSurfaceKHR)
+```
+
+VK_KHR_surface 扩展声明了 VkSurfaceKHR 对象，并提供了一个用于销毁 VkSurfaceKHR 对象的函数。 针对不同平台的扩展为各自平台提供了创建 VkSurfaceKHR 对象的函数。 从应用程序的角度来看，这是一个不透明的句柄，就像其他 Vulkan 对象的句柄一样。
+
+## 直接向显示设备展示
+
+在某些环境中，应用程序还可以直接向显示设备呈现 Vulkan 渲染，而无需使用中间窗口系统。 这对于嵌入式应用或使用 Vulkan 实现窗口系统的呈现/显示后端非常有用。 VK_KHR_display 扩展提供了枚举显示设备和创建针对显示设备的 VkSurfaceKHR 对象所需的功能。
+
+### 显示枚举值
+
+### 显示控制
+
+### 显示 Surface
+
+### 向没有图形界面的系统呈现（Presenting to Headless Surfaces）
+
+## 查询 WSI 支持
+
+并非所有物理设备都支持 WSI。 在物理设备中，并非所有队列族都支持呈现。 WSI 支持和兼容性可以以平台中立的方式确定（确定对特定表面对象演示的支持），也可以以平台特定的方式确定（确定对指定物理设备演示的支持，但不保证对特定表面对象演示的支持）。
+
+要确定物理设备的队列系列是否支持呈现到指定表面，请调用
+
+```cpp
+// Provided by VK_KHR_surface
+VkResult vkGetPhysicalDeviceSurfaceSupportKHR(
+    VkPhysicalDevice                            physicalDevice,
+    uint32_t                                    queueFamilyIndex,
+    VkSurfaceKHR                                surface,
+    VkBool32*                                   pSupported);
+```
+
+- physicalDevice 是物理设备。
+- queueFamilyIndex 是队列系列。
+- surface 是表面。
+- pSupported 是指向 VkBool32 的指针。 VK_TRUE 表示支持，VK_FALSE 表示不支持。
+
+## Surface 查询
+
+针对 Surface 的交换链功能是 WSI 平台、本地窗口或显示器以及物理设备功能的交叉点。 可以通过本节下面列出的查询获取所得到的功能。
+
+> [!note]
+> 除了通过以下表面查询获得的表面功能外，交换链图像还受 vkGetPhysicalDeviceImageFormatProperties 报告的普通图像创建限制的约束。 正如相应的 "有效使用 "章节所指示的那样，在创建交换链图像时，必须同时满足表面能力和图像创建限制。
+
+### Surface 能力
+
+### Surface 格式支持
+
+### Surface 呈现模式支持
+
+## 全屏独家控制
+
+## 设备组查询
+
+## 显示定时查询
+
+## 呈现等待
+
+如果应用程序希望通过监控呈现过程的完成时间来控制应用程序的节奏，从而限制排队等待呈现的未显示图像的数量，则需要在呈现过程中获得信号的方法。
+
+使用 VK_GOOGLE_display_timing 扩展，应用程序可以发现图像何时呈现，但只能是异步的。
+
+提供一种机制允许应用程序阻塞，等待呈现过程的特定步骤完成，这样就可以控制未完成工作的数量（从而控制在响应用户输入或呈现环境变化时可能出现的延迟）。
+
+VK_KHR_present_wait 扩展允许应用程序通过传递一个 VkPresentIdKHR 结构，在 vkQueuePresentKHR 调用中告诉演示引擎它计划等待呈现。 然后，该结构中传递的 presentId 可以传递给未来的 vkWaitForPresentKHR 调用，使应用程序阻塞，直到呈现结束。
+
 ## WSI 交换链
 
 交换链对象（又称交换链）可将渲染结果呈现在表面（surface）上。
 
-交换链是与表面（surface）关联的可呈现图像数组的抽象。可呈现图像由平台创建的 VkImage 对象表示。一次只能显示一幅图像（多视图/立体-3D 表面可以是一个数组图像），但可以排队显示多幅图像。应用程序对图像进行渲染，然后排队将图像显示到曲面上。
+交换链是与 Surface 关联的可呈现图像数组的抽象。可呈现图像由平台创建的 VkImage 对象表示。一次只能显示一幅图像（多视图/立体-3D Surface 可以是一个数组图像），但可以排队显示多幅图像。应用程序对图像进行渲染，然后排队将图像显示到 Surface 上。
 
 一个本地（native）窗口不能同时与一个以上的非退役交换链关联。此外，无法为关联了非 Vulkan 图形 API 表面（surface）的本地窗口创建交换链。
 
@@ -36,6 +127,7 @@
 
 <details>
 <summary>交换链API</summary>
+
 要查询交换链在渲染为共享可呈现图像时的状态，请调用
 
 ```cpp
@@ -184,3 +276,9 @@ typedef enum VkSwapchainCreateFlagBitsKHR {
 ```
 
 </details>
+
+## HDR 元数据
+
+## 滞后控制
+
+## 呈现屏障
